@@ -65,6 +65,10 @@ func (n *NameRouter) AddNamehost(nh *Namehost) error {
 	nh.proxy = httputil.NewSingleHostReverseProxy(u)
 
 	for _, host := range nh.Hosts {
+		n.logger.Info("register host",
+			zap.String("host", host),
+			zap.String("destination", nh.DestinationAddr),
+		)
 		n.nameHosts[host] = nh
 	}
 
@@ -97,6 +101,8 @@ func (n *NameRouter) hostHeaderMiddleware(next http.Handler) http.Handler {
 			)
 			return
 		}
-		next.ServeHTTP(w, r)
+		if next != nil {
+			next.ServeHTTP(w, r)
+		}
 	})
 }
