@@ -10,10 +10,13 @@ import (
 	"go.uber.org/zap"
 )
 
+const defaultNameHost = "defaultNamehost"
+
 type NameRouter struct {
-	svr       *http.Server
-	logger    *zap.Logger
-	nameHosts map[string]*Namehost
+	svr          *http.Server
+	logger       *zap.Logger
+	nameHosts    map[string]*Namehost
+	defaultRoute *httputil.ReverseProxy
 }
 
 type Namehost struct {
@@ -69,6 +72,12 @@ func (n *NameRouter) AddNamehost(nh *Namehost) error {
 			zap.String("host", host),
 			zap.String("destination", nh.DestinationAddr),
 		)
+		if host == "default" {
+			n.logger.Info("registering default route",
+				zap.String("destination", nh.DestinationAddr),
+			)
+			n.defaultRoute = nh.proxy
+		}
 		n.nameHosts[host] = nh
 	}
 
@@ -78,10 +87,15 @@ func (n *NameRouter) AddNamehost(nh *Namehost) error {
 func (n *NameRouter) handler(w http.ResponseWriter, r *http.Request) {
 	nh, ok := n.nameHosts[r.Host]
 	if !ok {
-		http.Error(w, "host not configured "+r.Host, http.StatusBadRequest)
 		n.logger.Error("missing proxy config",
 			zap.String("request host", r.Host),
 		)
+		if n.defaultRoute != nil {
+			n.logger.Info("using default route")
+			n.defaultRoute.ServeHTTP(w, r)
+			return
+		}
+		http.Error(w, "host not configured "+r.Host, http.StatusBadRequest)
 		return
 	}
 
