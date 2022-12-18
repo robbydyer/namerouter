@@ -83,7 +83,7 @@ func New(nameHosts ...*Namehost) (*NameRouter, error) {
 }
 
 func (n *NameRouter) Start() error {
-	return n.svr.ListenAndServe()
+	return n.svr.ListenAndServeTLS("", "")
 }
 
 func (n *NameRouter) Shutdown(ctx context.Context) {
