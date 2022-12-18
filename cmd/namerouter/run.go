@@ -1,8 +1,11 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"os/signal"
+	"time"
 
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
@@ -57,6 +60,15 @@ func (r *runCmd) run(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+
+	go func() {
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, os.Interrupt)
+		<-c
+		stopCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		nr.Shutdown(stopCtx)
+	}()
 
 	return nr.Start()
 }

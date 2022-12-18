@@ -1,6 +1,7 @@
 package namerouter
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httputil"
@@ -15,6 +16,7 @@ const defaultNameHost = "defaultNamehost"
 
 type NameRouter struct {
 	svr          *http.Server
+	httpSvr      *http.Server
 	logger       *zap.Logger
 	nameHosts    map[string]*Namehost
 	defaultRoute *httputil.ReverseProxy
@@ -44,7 +46,7 @@ func New(nameHosts ...*Namehost) (*NameRouter, error) {
 	router.Use(n.hostHeaderMiddleware)
 
 	aCert := &autocert.Manager{
-		Cache:      autocert.DirCache("secret-dir"),
+		Cache:      autocert.DirCache("/cert_cache"),
 		Prompt:     autocert.AcceptTOS,
 		Email:      "robby.dyer@gmail.com",
 		HostPolicy: autocert.HostWhitelist(getHosts(nameHosts)...),
@@ -55,6 +57,21 @@ func New(nameHosts ...*Namehost) (*NameRouter, error) {
 		Handler:   router,
 		TLSConfig: aCert.TLSConfig(),
 	}
+
+	n.httpSvr = &http.Server{
+		Addr: ":http",
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// redirect to 443
+			newURI := "https://" + r.Host + r.URL.String()
+			http.Redirect(w, r, newURI, http.StatusFound)
+		}),
+	}
+
+	go func() {
+		if err := n.httpSvr.ListenAndServe(); err != nil {
+			n.logger.Error("http server failed", zap.Error(err))
+		}
+	}()
 
 	for _, nh := range nameHosts {
 		if err := n.addNamehost(nh); err != nil {
@@ -67,6 +84,11 @@ func New(nameHosts ...*Namehost) (*NameRouter, error) {
 
 func (n *NameRouter) Start() error {
 	return n.svr.ListenAndServe()
+}
+
+func (n *NameRouter) Shutdown(ctx context.Context) {
+	n.svr.Shutdown(ctx)
+	n.httpSvr.Shutdown(ctx)
 }
 
 func (n *NameRouter) addNamehost(nh *Namehost) error {
