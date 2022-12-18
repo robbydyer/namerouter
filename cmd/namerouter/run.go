@@ -17,6 +17,11 @@ type runCmd struct {
 	configFile string
 }
 
+type cfg struct {
+	Internal []string `yaml:"internal"`
+	External []string `yaml:"external"`
+}
+
 func newRunCmd() *cobra.Command {
 	r := &runCmd{}
 
@@ -37,7 +42,7 @@ func (r *runCmd) run(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("missing --config-file")
 	}
 
-	configData := map[string][]string{}
+	configData := map[string]*cfg{}
 
 	data, err := os.ReadFile(r.configFile)
 	if err != nil {
@@ -52,7 +57,8 @@ func (r *runCmd) run(cmd *cobra.Command, args []string) error {
 	for ip, hostnames := range configData {
 		nameHosts = append(nameHosts, &namerouter.Namehost{
 			DestinationAddr: ip,
-			Hosts:           hostnames,
+			ExternalHosts:   hostnames.External,
+			InternalHosts:   hostnames.Internal,
 		})
 	}
 

@@ -23,7 +23,8 @@ type NameRouter struct {
 }
 
 type Namehost struct {
-	Hosts           []string
+	InternalHosts   []string
+	ExternalHosts   []string
 	DestinationAddr string
 	proxy           *httputil.ReverseProxy
 }
@@ -49,8 +50,15 @@ func New(nameHosts ...*Namehost) (*NameRouter, error) {
 		Cache:      autocert.DirCache("/cert_cache"),
 		Prompt:     autocert.AcceptTOS,
 		Email:      "robby.dyer@gmail.com",
-		HostPolicy: autocert.HostWhitelist(getHosts(nameHosts)...),
+		HostPolicy: autocert.HostWhitelist(getExternalHosts(nameHosts)...),
 	}
+
+	httpRouter := mux.NewRouter()
+	httpRouter.PathPrefix("/").HandlerFunc(n.handler)
+	httpRouter.Use(
+		n.hostHeaderMiddleware,
+		n.externalToHTTPSMiddleware,
+	)
 
 	n.svr = &http.Server{
 		Addr:      ":https",
@@ -59,12 +67,8 @@ func New(nameHosts ...*Namehost) (*NameRouter, error) {
 	}
 
 	n.httpSvr = &http.Server{
-		Addr: ":http",
-		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// redirect to 443
-			newURI := "https://" + r.Host + r.URL.String()
-			http.Redirect(w, r, newURI, http.StatusFound)
-		}),
+		Addr:    ":http",
+		Handler: httpRouter,
 	}
 
 	go func() {
@@ -92,7 +96,11 @@ func (n *NameRouter) Shutdown(ctx context.Context) {
 }
 
 func (n *NameRouter) addNamehost(nh *Namehost) error {
-	for _, host := range nh.Hosts {
+	hosts := []string{}
+	hosts = append(hosts, nh.ExternalHosts...)
+	hosts = append(hosts, nh.InternalHosts...)
+
+	for _, host := range hosts {
 		if _, ok := n.nameHosts[host]; ok {
 			return fmt.Errorf("host already registered")
 		}
@@ -104,7 +112,7 @@ func (n *NameRouter) addNamehost(nh *Namehost) error {
 	}
 	nh.proxy = httputil.NewSingleHostReverseProxy(u)
 
-	for _, host := range nh.Hosts {
+	for _, host := range hosts {
 		n.logger.Info("register host",
 			zap.String("host", host),
 			zap.String("destination", nh.DestinationAddr),
