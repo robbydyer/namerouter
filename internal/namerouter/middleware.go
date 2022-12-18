@@ -32,6 +32,8 @@ func (n *NameRouter) externalToHTTPSMiddleware(next http.Handler) http.Handler {
 			http.Redirect(w, r, newURI, http.StatusFound)
 			return
 		}
-		next.ServeHTTP(w, r)
+		if next != nil {
+			next.ServeHTTP(w, r)
+		}
 	})
 }

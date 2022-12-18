@@ -22,14 +22,18 @@ type NameRouter struct {
 	defaultRoute *httputil.ReverseProxy
 }
 
+type Config struct {
+	Routes []*Namehost `yaml:"routes"`
+}
+
 type Namehost struct {
-	InternalHosts   []string
-	ExternalHosts   []string
-	DestinationAddr string
+	InternalHosts   []string `yaml:"internal"`
+	ExternalHosts   []string `yaml:"external"`
+	DestinationAddr string   `yaml:"destination"`
 	proxy           *httputil.ReverseProxy
 }
 
-func New(nameHosts ...*Namehost) (*NameRouter, error) {
+func New(config *Config) (*NameRouter, error) {
 	logger, err := zap.NewProduction()
 	if err != nil {
 		return nil, err
@@ -50,7 +54,7 @@ func New(nameHosts ...*Namehost) (*NameRouter, error) {
 		Cache:      autocert.DirCache("/cert_cache"),
 		Prompt:     autocert.AcceptTOS,
 		Email:      "robby.dyer@gmail.com",
-		HostPolicy: autocert.HostWhitelist(getExternalHosts(nameHosts)...),
+		HostPolicy: autocert.HostWhitelist(getExternalHosts(config.Routes)...),
 	}
 
 	httpRouter := mux.NewRouter()
@@ -77,7 +81,7 @@ func New(nameHosts ...*Namehost) (*NameRouter, error) {
 		}
 	}()
 
-	for _, nh := range nameHosts {
+	for _, nh := range config.Routes {
 		if err := n.addNamehost(nh); err != nil {
 			return nil, err
 		}
