@@ -138,6 +138,7 @@ func (n *NameRouter) handler(w http.ResponseWriter, r *http.Request) {
 
 	n.logger.Info("forward request",
 		zap.String("Host", r.Host),
+		zap.String("source", r.RemoteAddr),
 		zap.String("Destination Addr", nh.DestinationAddr),
 	)
 	nh.proxy.ServeHTTP(w, r)
