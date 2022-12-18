@@ -34,11 +34,6 @@ func (r *runCmd) run(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("missing --config-file")
 	}
 
-	nr, err := namerouter.New()
-	if err != nil {
-		return err
-	}
-
 	configData := map[string][]string{}
 
 	data, err := os.ReadFile(r.configFile)
@@ -50,11 +45,17 @@ func (r *runCmd) run(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to parse config file: %w", err)
 	}
 
+	nameHosts := []*namerouter.Namehost{}
 	for ip, hostnames := range configData {
-		nr.AddNamehost(&namerouter.Namehost{
+		nameHosts = append(nameHosts, &namerouter.Namehost{
 			DestinationAddr: ip,
 			Hosts:           hostnames,
 		})
+	}
+
+	nr, err := namerouter.New(nameHosts...)
+	if err != nil {
+		return err
 	}
 
 	return nr.Start()

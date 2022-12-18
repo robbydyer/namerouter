@@ -8,6 +8,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
+	"golang.org/x/crypto/acme/autocert"
 )
 
 const defaultNameHost = "defaultNamehost"
@@ -25,7 +26,7 @@ type Namehost struct {
 	proxy           *httputil.ReverseProxy
 }
 
-func New() (*NameRouter, error) {
+func New(nameHosts ...*Namehost) (*NameRouter, error) {
 	logger, err := zap.NewProduction()
 	if err != nil {
 		return nil, err
@@ -42,9 +43,23 @@ func New() (*NameRouter, error) {
 
 	router.Use(n.hostHeaderMiddleware)
 
+	aCert := &autocert.Manager{
+		Cache:      autocert.DirCache("secret-dir"),
+		Prompt:     autocert.AcceptTOS,
+		Email:      "robby.dyer@gmail.com",
+		HostPolicy: autocert.HostWhitelist(getHosts(nameHosts)...),
+	}
+
 	n.svr = &http.Server{
-		Addr:    "0.0.0.0:80",
-		Handler: router,
+		Addr:      ":https",
+		Handler:   router,
+		TLSConfig: aCert.TLSConfig(),
+	}
+
+	for _, nh := range nameHosts {
+		if err := n.addNamehost(nh); err != nil {
+			return nil, err
+		}
 	}
 
 	return n, nil
@@ -54,14 +69,14 @@ func (n *NameRouter) Start() error {
 	return n.svr.ListenAndServe()
 }
 
-func (n *NameRouter) AddNamehost(nh *Namehost) error {
+func (n *NameRouter) addNamehost(nh *Namehost) error {
 	for _, host := range nh.Hosts {
 		if _, ok := n.nameHosts[host]; ok {
 			return fmt.Errorf("host already registered")
 		}
 	}
 
-	u, err := url.Parse("http://" + nh.DestinationAddr)
+	u, err := url.Parse(nh.DestinationAddr)
 	if err != nil {
 		return fmt.Errorf("failed to parse URL for destination host: %w", err)
 	}
@@ -104,19 +119,4 @@ func (n *NameRouter) handler(w http.ResponseWriter, r *http.Request) {
 		zap.String("Destination Addr", nh.DestinationAddr),
 	)
 	nh.proxy.ServeHTTP(w, r)
-}
-
-func (n *NameRouter) hostHeaderMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Host == "" {
-			http.Error(w, "missing Host header", http.StatusBadRequest)
-			n.logger.Error("host header not configured",
-				zap.String("request host", r.Host),
-			)
-			return
-		}
-		if next != nil {
-			next.ServeHTTP(w, r)
-		}
-	})
 }
