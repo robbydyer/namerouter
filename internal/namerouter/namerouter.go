@@ -17,6 +17,7 @@ const defaultNameHost = "defaultNamehost"
 type NameRouter struct {
 	svr          *http.Server
 	httpSvr      *http.Server
+	healthSvr    *http.Server
 	logger       *zap.Logger
 	nameHosts    map[string]*Namehost
 	defaultRoute *httputil.ReverseProxy
@@ -38,6 +39,8 @@ func New(config *Config) (*NameRouter, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	zap.RedirectStdLog(logger)
 
 	n := &NameRouter{
 		nameHosts: make(map[string]*Namehost),
@@ -68,19 +71,29 @@ func New(config *Config) (*NameRouter, error) {
 		Addr:      ":https",
 		Handler:   router,
 		TLSConfig: aCert.TLSConfig(),
-		ErrorLog:  zap.NewStdLog(n.logger),
 		ConnState: n.captureClosedConnIP,
 	}
 
 	n.httpSvr = &http.Server{
-		Addr:     ":http",
-		Handler:  httpRouter,
-		ErrorLog: zap.NewStdLog(n.logger),
+		Addr:    ":http",
+		Handler: httpRouter,
+	}
+
+	n.healthSvr = &http.Server{
+		Addr: ":9000",
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_, _ = w.Write([]byte("OK"))
+		}),
 	}
 
 	go func() {
 		if err := n.httpSvr.ListenAndServe(); err != nil {
 			n.logger.Error("http server failed", zap.Error(err))
+		}
+	}()
+	go func() {
+		if err := n.healthSvr.ListenAndServe(); err != nil {
+			n.logger.Error("http health server failed", zap.Error(err))
 		}
 	}()
 
@@ -100,6 +113,7 @@ func (n *NameRouter) Start() error {
 func (n *NameRouter) Shutdown(ctx context.Context) {
 	n.svr.Shutdown(ctx)
 	n.httpSvr.Shutdown(ctx)
+	n.healthSvr.Shutdown(ctx)
 }
 
 func (n *NameRouter) addNamehost(nh *Namehost) error {
