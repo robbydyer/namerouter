@@ -17,7 +17,7 @@ func (n *NameRouter) getVisitor(ip string) *rate.Limiter {
 	defer n.Unlock()
 
 	v, ok := n.visitors[ip]
-	if !ok {
+	if !ok || v == nil {
 		l := rate.NewLimiter(10, 10)
 		n.visitors[ip] = &visitor{
 			limiter: l,
