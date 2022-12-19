@@ -152,6 +152,7 @@ func (n *NameRouter) handler(w http.ResponseWriter, r *http.Request) {
 		zap.String("Host", r.Host),
 		zap.String("source", r.RemoteAddr),
 		zap.String("Destination Addr", nh.DestinationAddr),
+		zap.String("Request", r.RequestURI),
 	)
 	nh.proxy.ServeHTTP(w, r)
 }
