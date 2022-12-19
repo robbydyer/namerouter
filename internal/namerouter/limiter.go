@@ -18,10 +18,12 @@ func (n *NameRouter) getVisitor(ip string) *rate.Limiter {
 
 	v, ok := n.visitors[ip]
 	if !ok || v == nil {
-		l := rate.NewLimiter(10, 10)
+		l := rate.NewLimiter(50, 100)
 		n.visitors[ip] = &visitor{
-			limiter: l,
+			limiter:  l,
+			lastSeen: time.Now(),
 		}
+		return l
 	}
 
 	v.lastSeen = time.Now()
