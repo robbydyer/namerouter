@@ -69,6 +69,7 @@ func New(config *Config) (*NameRouter, error) {
 		Handler:   router,
 		TLSConfig: aCert.TLSConfig(),
 		ErrorLog:  zap.NewStdLog(n.logger),
+		ConnState: n.captureClosedConnIP,
 	}
 
 	n.httpSvr = &http.Server{

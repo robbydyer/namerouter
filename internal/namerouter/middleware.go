@@ -37,3 +37,17 @@ func (n *NameRouter) externalToHTTPSMiddleware(next http.Handler) http.Handler {
 		}
 	})
 }
+
+func (n *NameRouter) captureClosedConnIP(conn net.Conn, state http.ConnState) {
+	if state == http.StateClosed {
+		if conn.RemoteAddr() != nil {
+			parts := strings.Split(conn.RemoteAddr().String(), ":")
+			if len(parts) > 0 {
+				ip := parts[0]
+				n.logger.Info("closed connection",
+					zap.String("IP", ip),
+				)
+			}
+		}
+	}
+}
