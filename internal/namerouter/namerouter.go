@@ -68,11 +68,13 @@ func New(config *Config) (*NameRouter, error) {
 		Addr:      ":https",
 		Handler:   router,
 		TLSConfig: aCert.TLSConfig(),
+		ErrorLog:  zap.NewStdLog(n.logger),
 	}
 
 	n.httpSvr = &http.Server{
-		Addr:    ":http",
-		Handler: httpRouter,
+		Addr:     ":http",
+		Handler:  httpRouter,
+		ErrorLog: zap.NewStdLog(n.logger),
 	}
 
 	go func() {
