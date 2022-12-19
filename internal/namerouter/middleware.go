@@ -38,6 +38,29 @@ func (n *NameRouter) externalToHTTPSMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+func (n *NameRouter) rateLimiter(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ip, _, err := net.SplitHostPort(r.RemoteAddr)
+		if err != nil {
+			n.logger.Error("failed to parse remote addr",
+				zap.Error(err),
+			)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+
+		limiter := n.getVisitor(ip)
+		if !limiter.Allow() {
+			http.Error(w, http.StatusText(http.StatusTooManyRequests), http.StatusTooManyRequests)
+			return
+		}
+
+		if next != nil {
+			next.ServeHTTP(w, r)
+		}
+	})
+}
+
 func (n *NameRouter) captureClosedConnIP(conn net.Conn, state http.ConnState) {
 	if state == http.StateClosed || state == http.StateHijacked {
 		if conn.RemoteAddr() != nil {

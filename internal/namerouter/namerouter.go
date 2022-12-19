@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"sync"
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
@@ -15,12 +16,16 @@ import (
 const defaultNameHost = "defaultNamehost"
 
 type NameRouter struct {
-	svr          *http.Server
-	httpSvr      *http.Server
-	healthSvr    *http.Server
-	logger       *zap.Logger
-	nameHosts    map[string]*Namehost
-	defaultRoute *httputil.ReverseProxy
+	svr              *http.Server
+	httpSvr          *http.Server
+	healthSvr        *http.Server
+	logger           *zap.Logger
+	nameHosts        map[string]*Namehost
+	defaultRoute     *httputil.ReverseProxy
+	visitors         map[string]*visitor
+	backgroundCtx    context.Context
+	backgroundCancel context.CancelFunc
+	sync.Mutex
 }
 
 type Config struct {
@@ -45,13 +50,21 @@ func New(config *Config) (*NameRouter, error) {
 	n := &NameRouter{
 		nameHosts: make(map[string]*Namehost),
 		logger:    logger,
+		visitors:  make(map[string]*visitor),
 	}
+
+	n.backgroundCtx, n.backgroundCancel = context.WithCancel(context.Background())
+
+	go n.visitorCleanup(n.backgroundCtx)
 
 	router := mux.NewRouter()
 
 	router.PathPrefix("/").HandlerFunc(n.handler)
 
-	router.Use(n.hostHeaderMiddleware)
+	router.Use(
+		n.rateLimiter,
+		n.hostHeaderMiddleware,
+	)
 
 	aCert := &autocert.Manager{
 		Cache:      autocert.DirCache("/cert_cache"),
@@ -63,6 +76,7 @@ func New(config *Config) (*NameRouter, error) {
 	httpRouter := mux.NewRouter()
 	httpRouter.PathPrefix("/").HandlerFunc(n.handler)
 	httpRouter.Use(
+		n.rateLimiter,
 		n.hostHeaderMiddleware,
 		n.externalToHTTPSMiddleware,
 	)
@@ -111,6 +125,7 @@ func (n *NameRouter) Start() error {
 }
 
 func (n *NameRouter) Shutdown(ctx context.Context) {
+	n.backgroundCancel()
 	n.svr.Shutdown(ctx)
 	n.httpSvr.Shutdown(ctx)
 	n.healthSvr.Shutdown(ctx)
