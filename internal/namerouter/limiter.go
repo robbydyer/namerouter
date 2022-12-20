@@ -2,6 +2,7 @@ package namerouter
 
 import (
 	"context"
+	"net"
 	"time"
 
 	"golang.org/x/time/rate"
@@ -18,7 +19,13 @@ func (n *NameRouter) getVisitor(ip string) *rate.Limiter {
 
 	v, ok := n.visitors[ip]
 	if !ok || v == nil {
-		l := rate.NewLimiter(50, 100)
+		ipAddr := net.ParseIP(ip)
+		var l *rate.Limiter
+		if ipAddr.IsPrivate() {
+			l = rate.NewLimiter(rate.Limit(n.config.RateLimits.Internal.Rate), n.config.RateLimits.Internal.Burst)
+		} else {
+			l = rate.NewLimiter(rate.Limit(n.config.RateLimits.External.Rate), n.config.RateLimits.External.Burst)
+		}
 		n.visitors[ip] = &visitor{
 			limiter:  l,
 			lastSeen: time.Now(),

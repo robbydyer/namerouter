@@ -11,6 +11,7 @@ import (
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/acme/autocert"
+	"golang.org/x/time/rate"
 )
 
 const defaultNameHost = "defaultNamehost"
@@ -25,17 +26,29 @@ type NameRouter struct {
 	visitors         map[string]*visitor
 	backgroundCtx    context.Context
 	backgroundCancel context.CancelFunc
+	config           *Config
 	sync.Mutex
 }
 
 type Config struct {
-	Routes []*Namehost `yaml:"routes"`
+	RateLimits *RateLimits `yaml:"rateLimits"`
+	Routes     []*Namehost `yaml:"routes"`
+}
+
+type RateLimits struct {
+	Internal *RateLimitConfig `yaml:"local"`
+	External *RateLimitConfig `yaml:"local"`
+}
+type RateLimitConfig struct {
+	Rate  rate.Limit `yaml:"rate"`
+	Burst int        `yaml:"burst"`
 }
 
 type Namehost struct {
 	InternalHosts   []string `yaml:"internal"`
 	ExternalHosts   []string `yaml:"external"`
 	DestinationAddr string   `yaml:"destination"`
+	Always404       bool     `yaml:"always404"`
 	proxy           *httputil.ReverseProxy
 }
 
@@ -51,6 +64,7 @@ func New(config *Config) (*NameRouter, error) {
 		nameHosts: make(map[string]*Namehost),
 		logger:    logger,
 		visitors:  make(map[string]*visitor),
+		config:    config,
 	}
 
 	n.backgroundCtx, n.backgroundCancel = context.WithCancel(context.Background())
@@ -120,6 +134,26 @@ func New(config *Config) (*NameRouter, error) {
 	return n, nil
 }
 
+func (c *Config) setDefaults() {
+	if c.RateLimits == nil {
+		c.RateLimits = &RateLimits{}
+	}
+
+	if c.RateLimits.External == nil {
+		c.RateLimits.External = &RateLimitConfig{
+			Rate:  10,
+			Burst: 10,
+		}
+	}
+
+	if c.RateLimits.Internal == nil {
+		c.RateLimits.Internal = &RateLimitConfig{
+			Rate:  1000,
+			Burst: 1000,
+		}
+	}
+}
+
 func (n *NameRouter) Start() error {
 	return n.svr.ListenAndServeTLS("", "")
 }
@@ -142,11 +176,13 @@ func (n *NameRouter) addNamehost(nh *Namehost) error {
 		}
 	}
 
-	u, err := url.Parse(nh.DestinationAddr)
-	if err != nil {
-		return fmt.Errorf("failed to parse URL for destination host: %w", err)
+	if !nh.Always404 {
+		u, err := url.Parse(nh.DestinationAddr)
+		if err != nil {
+			return fmt.Errorf("failed to parse URL for destination host: %w", err)
+		}
+		nh.proxy = httputil.NewSingleHostReverseProxy(u)
 	}
-	nh.proxy = httputil.NewSingleHostReverseProxy(u)
 
 	for _, host := range hosts {
 		n.logger.Info("register host",
@@ -177,6 +213,18 @@ func (n *NameRouter) handler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		http.Error(w, "host not configured "+r.Host, http.StatusBadRequest)
+		return
+	}
+
+	if nh.Always404 {
+		http.Error(w, "go away", http.StatusNotFound)
+		return
+	}
+
+	if nh.proxy == nil {
+		n.logger.Error("proxy not configured for host",
+			zap.String("host", r.Host),
+		)
 		return
 	}
 
