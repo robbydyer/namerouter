@@ -36,8 +36,8 @@ type Config struct {
 }
 
 type RateLimits struct {
-	Internal *RateLimitConfig `yaml:"local"`
-	External *RateLimitConfig `yaml:"local"`
+	Internal *RateLimitConfig `yaml:"internal"`
+	External *RateLimitConfig `yaml:"external"`
 }
 type RateLimitConfig struct {
 	Rate  rate.Limit `yaml:"rate"`
