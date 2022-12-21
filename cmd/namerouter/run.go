@@ -17,11 +17,6 @@ type runCmd struct {
 	configFile string
 }
 
-type cfg struct {
-	Internal []string `yaml:"internal"`
-	External []string `yaml:"external"`
-}
-
 func newRunCmd() *cobra.Command {
 	r := &runCmd{}
 

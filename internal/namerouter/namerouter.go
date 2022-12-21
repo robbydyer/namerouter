@@ -14,8 +14,6 @@ import (
 	"golang.org/x/time/rate"
 )
 
-const defaultNameHost = "defaultNamehost"
-
 type NameRouter struct {
 	svr              *http.Server
 	httpSvr          *http.Server
@@ -66,6 +64,8 @@ func New(config *Config) (*NameRouter, error) {
 		visitors:  make(map[string]*visitor),
 		config:    config,
 	}
+
+	n.config.setDefaults()
 
 	n.backgroundCtx, n.backgroundCancel = context.WithCancel(context.Background())
 
@@ -160,9 +160,9 @@ func (n *NameRouter) Start() error {
 
 func (n *NameRouter) Shutdown(ctx context.Context) {
 	n.backgroundCancel()
-	n.svr.Shutdown(ctx)
-	n.httpSvr.Shutdown(ctx)
-	n.healthSvr.Shutdown(ctx)
+	_ = n.svr.Shutdown(ctx)
+	_ = n.httpSvr.Shutdown(ctx)
+	_ = n.healthSvr.Shutdown(ctx)
 }
 
 func (n *NameRouter) addNamehost(nh *Namehost) error {

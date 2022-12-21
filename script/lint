@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(dirname $( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd ))"
+
+fix=""
+if [ ! -n "${CI:-}" ]; then
+  fix="--fix"
+fi
+
+set -x
+docker run -t --rm \
+  -v "${ROOT}":/app$(delegated) \
+  -w /app \
+  -e CGO_ENABLED=0 \
+  -e GOCACHE=/app/.cache \
+  golangci/golangci-lint:v1.50.1 \
+  golangci-lint run --verbose --timeout=10m ${fix}
