@@ -70,6 +70,7 @@ func (n *NameRouter) captureClosedConnIP(conn net.Conn, state http.ConnState) {
 				if !ip.IsPrivate() {
 					n.logger.Info("closed remote connection",
 						zap.String("IP", ip.String()),
+						zap.String("local addr", conn.LocalAddr().String()),
 						zap.String("Conn state", state.String()),
 					)
 				}
