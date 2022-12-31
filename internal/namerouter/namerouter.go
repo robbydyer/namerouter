@@ -20,7 +20,7 @@ type NameRouter struct {
 	healthSvr        *http.Server
 	logger           *zap.Logger
 	nameHosts        map[string]*Namehost
-	defaultRoute     map[string]*httputil.ReverseProxy
+	defaultRoute     map[string]*Namehost
 	visitors         map[string]*visitor
 	backgroundCtx    context.Context
 	backgroundCancel context.CancelFunc
@@ -64,7 +64,7 @@ func New(config *Config) (*NameRouter, error) {
 		logger:       logger,
 		visitors:     make(map[string]*visitor),
 		config:       config,
-		defaultRoute: make(map[string]*httputil.ReverseProxy),
+		defaultRoute: make(map[string]*Namehost),
 	}
 
 	n.config.setDefaults()
@@ -201,10 +201,14 @@ func (n *NameRouter) addNamehost(nh *Namehost) error {
 				zap.String("destination", nh.DestinationAddr),
 			)
 			if nh.SourcePort != nil {
-				n.defaultRoute[*nh.SourcePort] = nh.proxy
+				n.logger.Info("registering sourcePort default route",
+					zap.String("dest", nh.DestinationAddr),
+					zap.String("source port", *nh.SourcePort),
+				)
+				n.defaultRoute[*nh.SourcePort] = nh
 			} else {
-				n.defaultRoute["80"] = nh.proxy
-				n.defaultRoute["443"] = nh.proxy
+				n.defaultRoute["80"] = nh
+				n.defaultRoute["443"] = nh
 			}
 		} else {
 			n.nameHosts[host] = nh
@@ -223,7 +227,7 @@ func (n *NameRouter) handler(w http.ResponseWriter, r *http.Request) {
 		dr, ok := n.defaultRoute["80"]
 		if ok && dr != nil {
 			n.logger.Info("using default route")
-			dr.ServeHTTP(w, r)
+			dr.proxy.ServeHTTP(w, r)
 			return
 		}
 		http.Error(w, "host not configured "+r.Host, http.StatusBadRequest)

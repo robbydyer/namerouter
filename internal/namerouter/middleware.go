@@ -100,7 +100,11 @@ func (n *NameRouter) sourcePort(next http.Handler) http.Handler {
 
 		dr, ok := n.defaultRoute[port]
 		if ok && dr != nil {
-			dr.ServeHTTP(w, r)
+			n.logger.Info("sending sourcePort default request",
+				zap.String("dest", dr.DestinationAddr),
+				zap.String("sourcePort", *dr.SourcePort),
+			)
+			dr.proxy.ServeHTTP(w, r)
 			return
 		}
 
