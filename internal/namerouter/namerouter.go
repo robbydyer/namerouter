@@ -30,6 +30,7 @@ type NameRouter struct {
 type Config struct {
 	RateLimits *RateLimits `yaml:"rateLimits"`
 	Routes     []*Namehost `yaml:"routes"`
+	DoSSL      bool        `yaml:"doSSL"`
 }
 
 type RateLimits struct {
@@ -160,8 +161,10 @@ func (c *Config) setDefaults() {
 }
 
 func (n *NameRouter) Start() error {
-	// return n.svr.ListenAndServeTLS("", "")
-	return n.svr.ListenAndServe()
+	if n.config.DoSSL {
+		return n.svr.ListenAndServeTLS("", "")
+	}
+	return nil
 }
 
 func (n *NameRouter) Shutdown(ctx context.Context) {
