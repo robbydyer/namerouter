@@ -79,6 +79,7 @@ func New(config *Config) (*NameRouter, error) {
 
 	router.Use(
 		n.rateLimiter,
+		n.sourcePort,
 		n.hostHeaderMiddleware,
 	)
 
