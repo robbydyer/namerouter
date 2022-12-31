@@ -78,3 +78,32 @@ func (n *NameRouter) captureClosedConnIP(conn net.Conn, state http.ConnState) {
 		}
 	}
 }
+
+func (n *NameRouter) sourcePort(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Host != "" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		ctx := r.Context()
+
+		srvAddr := ctx.Value(http.LocalAddrContextKey).(net.Addr)
+		_, port, err := net.SplitHostPort(srvAddr.String())
+		if err != nil {
+			n.logger.Error("failed to split request hostport",
+				zap.String("host", r.Host),
+				zap.Error(err),
+			)
+			return
+		}
+
+		dr, ok := n.defaultRoute[port]
+		if ok && dr != nil {
+			dr.ServeHTTP(w, r)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
