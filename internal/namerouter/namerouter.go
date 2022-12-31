@@ -93,6 +93,7 @@ func New(config *Config) (*NameRouter, error) {
 	httpRouter.PathPrefix("/").HandlerFunc(n.handler)
 	httpRouter.Use(
 		n.rateLimiter,
+		n.sourcePort,
 		n.hostHeaderMiddleware,
 		n.externalToHTTPSMiddleware,
 	)
