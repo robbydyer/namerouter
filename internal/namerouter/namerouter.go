@@ -121,11 +121,6 @@ func New(config *Config) (*NameRouter, error) {
 	}
 
 	go func() {
-		if err := n.httpSvr.ListenAndServe(); err != nil {
-			n.logger.Error("http server failed", zap.Error(err))
-		}
-	}()
-	go func() {
 		if err := n.healthSvr.ListenAndServe(); err != nil {
 			n.logger.Error("http health server failed", zap.Error(err))
 		}
@@ -162,9 +157,14 @@ func (c *Config) setDefaults() {
 
 func (n *NameRouter) Start() error {
 	if n.config.DoSSL {
+		go func() {
+			if err := n.httpSvr.ListenAndServe(); err != nil {
+				n.logger.Error("http server failed", zap.Error(err))
+			}
+		}()
 		return n.svr.ListenAndServeTLS("", "")
 	}
-	return nil
+	return n.httpSvr.ListenAndServe()
 }
 
 func (n *NameRouter) Shutdown(ctx context.Context) {
