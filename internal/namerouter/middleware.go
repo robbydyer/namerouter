@@ -110,6 +110,9 @@ func (n *NameRouter) sourcePort(next http.Handler) http.Handler {
 			dr.proxy.ServeHTTP(w, r)
 			return
 		}
+		n.logger.Info("not a sourceport connection",
+			zap.String("host", r.Host),
+		)
 
 		next.ServeHTTP(w, r)
 	})
