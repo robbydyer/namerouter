@@ -206,8 +206,9 @@ func (n *NameRouter) addNamehost(nh *Namehost) error {
 				n.defaultRoute["80"] = nh.proxy
 				n.defaultRoute["443"] = nh.proxy
 			}
+		} else {
+			n.nameHosts[host] = nh
 		}
-		n.nameHosts[host] = nh
 	}
 
 	return nil
