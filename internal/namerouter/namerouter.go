@@ -10,7 +10,6 @@ import (
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
-	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/time/rate"
 )
 
@@ -83,12 +82,14 @@ func New(config *Config) (*NameRouter, error) {
 		n.hostHeaderMiddleware,
 	)
 
-	aCert := &autocert.Manager{
-		Cache:      autocert.DirCache("/cert_cache"),
-		Prompt:     autocert.AcceptTOS,
-		Email:      "robby.dyer@gmail.com",
-		HostPolicy: autocert.HostWhitelist(getExternalHosts(config.Routes)...),
-	}
+	/*
+		aCert := &autocert.Manager{
+			Cache:      autocert.DirCache("/cert_cache"),
+			Prompt:     autocert.AcceptTOS,
+			Email:      "robby.dyer@gmail.com",
+			HostPolicy: autocert.HostWhitelist(getExternalHosts(config.Routes)...),
+		}
+	*/
 
 	httpRouter := mux.NewRouter()
 	httpRouter.PathPrefix("/").HandlerFunc(n.handler)
@@ -100,9 +101,9 @@ func New(config *Config) (*NameRouter, error) {
 	)
 
 	n.svr = &http.Server{
-		Addr:      ":https",
-		Handler:   router,
-		TLSConfig: aCert.TLSConfig(),
+		Addr:    ":https",
+		Handler: router,
+		// TLSConfig: aCert.TLSConfig(),
 		ConnState: n.captureClosedConnIP,
 	}
 
@@ -159,7 +160,8 @@ func (c *Config) setDefaults() {
 }
 
 func (n *NameRouter) Start() error {
-	return n.svr.ListenAndServeTLS("", "")
+	// return n.svr.ListenAndServeTLS("", "")
+	return n.svr.ListenAndServe()
 }
 
 func (n *NameRouter) Shutdown(ctx context.Context) {
