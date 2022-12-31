@@ -179,7 +179,7 @@ func (n *NameRouter) addNamehost(nh *Namehost) error {
 
 	for _, host := range hosts {
 		if _, ok := n.nameHosts[host]; ok {
-			return fmt.Errorf("host already registered")
+			return fmt.Errorf("host already registered %s", host)
 		}
 	}
 
