@@ -8,7 +8,7 @@ require (
 	github.com/spf13/viper v1.14.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e
-	golang.org/x/time v0.0.0-20220609170525-579cf78fd858
+	golang.org/x/time v0.5.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
