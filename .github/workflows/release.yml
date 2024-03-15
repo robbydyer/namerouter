@@ -5,7 +5,7 @@ on:
         - master
 
 jobs:
-  build:
+  release:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -19,10 +19,10 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_PASS }}
 
-    - name: Build ${{matrix.arch}}
+    - name: Build Docker Image
       uses: docker/build-push-action@v4
       with:
         push: true
         file: Dockerfile
-        tags: robbydyer/namerouter:${{steps.sha.outputs.sha}},robbydyer/namerouter:latest
+        tags: robbydyer/namerouter:${{ github.sha }},robbydyer/namerouter:latest
         platforms: linux/amd64
