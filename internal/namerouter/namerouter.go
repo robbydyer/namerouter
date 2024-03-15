@@ -32,6 +32,7 @@ type Config struct {
 	RateLimits *RateLimits `yaml:"rateLimits"`
 	Routes     []*Namehost `yaml:"routes"`
 	DoSSL      bool        `yaml:"doSSL"`
+	Email      string      `yaml:"email"`
 }
 
 type RateLimits struct {
@@ -87,7 +88,7 @@ func New(config *Config) (*NameRouter, error) {
 	aCert := &autocert.Manager{
 		Cache:      autocert.DirCache("/cert_cache"),
 		Prompt:     autocert.AcceptTOS,
-		Email:      "robby.dyer@gmail.com",
+		Email:      config.Email,
 		HostPolicy: autocert.HostWhitelist(getExternalHosts(config.Routes)...),
 	}
 
@@ -248,6 +249,7 @@ func (n *NameRouter) handler(w http.ResponseWriter, r *http.Request) {
 		n.logger.Error("proxy not configured for host",
 			zap.String("host", r.Host),
 		)
+		http.Error(w, "proxy not configured for host", http.StatusNotImplemented)
 		return
 	}
 
