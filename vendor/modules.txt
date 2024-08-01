@@ -87,8 +87,8 @@ go.uber.org/zap/internal/exit
 go.uber.org/zap/internal/pool
 go.uber.org/zap/internal/stacktrace
 go.uber.org/zap/zapcore
-# golang.org/x/crypto v0.24.0
-## explicit; go 1.18
+# golang.org/x/crypto v0.25.0
+## explicit; go 1.20
 golang.org/x/crypto/acme
 golang.org/x/crypto/acme/autocert
 # golang.org/x/exp v0.0.0-20230905200255-921286631fa9
@@ -101,7 +101,7 @@ golang.org/x/exp/slog/internal/buffer
 # golang.org/x/net v0.23.0
 ## explicit; go 1.18
 golang.org/x/net/idna
-# golang.org/x/sys v0.21.0
+# golang.org/x/sys v0.22.0
 ## explicit; go 1.18
 golang.org/x/sys/unix
 golang.org/x/sys/windows
