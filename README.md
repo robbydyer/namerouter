@@ -1,5 +1,5 @@
 # Namerouter
-Namerouter is a simple reverse proxy.
+Namerouter is a simple reverse proxy that provides routing for internal and external hosts. Auto-created SSL certs for external hostnames. It's called "namerouter" because naming things is hard.
 
 ## Features
 - Differentiation between "internal" and "external" hostnames for the same destination
@@ -13,7 +13,7 @@ Config is provided by a YAML config file.
 # Email, required for Letsencrypt cert generation
 email: me@place.com
 
-# Enable this to auto-create SSL certs for all defined external hostnames
+# Enable TLS
 doSSL: true
 
 # Rate limiting
@@ -31,8 +31,8 @@ rateLimits:
 
 # Define the routes.
 # Each route has a `destination` and one or both of
-# `external` or `internal` hosts. If `doSSL` is true,
-# exrternal hosts will have SSL certs created for them.
+# `external` or `internal` hosts.
+# External hosts will have SSL certs created for them.
 routes:
   - destination: "http://10.0.0.1:8080"
     external:
