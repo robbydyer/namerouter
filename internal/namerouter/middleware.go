@@ -146,6 +146,9 @@ func (n *NameRouter) authMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
+		n.logger.Info("performing auth",
+			zap.String("host", r.Host),
+		)
 		if err := n.authChecker(r.Context()); err != nil {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
