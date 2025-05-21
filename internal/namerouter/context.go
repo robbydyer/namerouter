@@ -19,6 +19,9 @@ func (n *NameRouter) getNamehost(req *http.Request) *Namehost {
 	// Check request context first
 	nh, ok := req.Context().Value(nameHostCtxKey).(*Namehost)
 	if ok {
+		n.logger.Debug("get namehost from request context",
+			zap.String("host", req.Host),
+		)
 		return nh
 	}
 
