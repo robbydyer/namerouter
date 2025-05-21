@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
 	"sync"
 
 	"github.com/gorilla/mux"
@@ -57,13 +58,16 @@ type Namehost struct {
 }
 
 func New(config *Config) (*NameRouter, error) {
-	logger, err := zap.NewProduction()
-	if err != nil {
-		return nil, err
-	}
-
+	var logger *zap.Logger
+	var err error
 	if config.Debug {
-		logger = logger.WithOptions(zap.IncreaseLevel(zapcore.DebugLevel))
+		core := zapcore.NewCore(zapcore.NewConsoleEncoder(zap.NewProductionEncoderConfig()), os.Stdout, zap.DebugLevel)
+		logger = zap.New(core)
+	} else {
+		logger, err = zap.NewProduction()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	zap.RedirectStdLog(logger)
