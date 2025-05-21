@@ -10,6 +10,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/time/rate"
 )
@@ -33,6 +34,7 @@ type Config struct {
 	Routes     []*Namehost `yaml:"routes"`
 	DoSSL      bool        `yaml:"doSSL"`
 	Email      string      `yaml:"email"`
+	Debug      bool        `yaml:"debug"`
 }
 
 type RateLimits struct {
@@ -58,6 +60,10 @@ func New(config *Config) (*NameRouter, error) {
 	logger, err := zap.NewProduction()
 	if err != nil {
 		return nil, err
+	}
+
+	if config.Debug {
+		logger = logger.WithOptions(zap.IncreaseLevel(zapcore.DebugLevel))
 	}
 
 	zap.RedirectStdLog(logger)

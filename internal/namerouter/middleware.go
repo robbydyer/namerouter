@@ -142,10 +142,10 @@ func (n *NameRouter) tinyauth(next http.Handler) http.Handler {
 		}
 
 		if !nh.DoAuth {
-			if next != nil {
-				next.ServeHTTP(w, r)
-			}
+			next.ServeHTTP(w, r)
 			return
 		}
+
+		next.ServeHTTP(w, r)
 	})
 }
