@@ -50,6 +50,7 @@ type Namehost struct {
 	DestinationAddr string   `yaml:"destination"`
 	SourcePort      *string  `yaml:"sourcePort"`
 	Always404       bool     `yaml:"always404"`
+	DoAuth          bool     `yaml:"doAuth"`
 	proxy           *httputil.ReverseProxy
 }
 
@@ -259,5 +260,5 @@ func (n *NameRouter) handler(w http.ResponseWriter, r *http.Request) {
 		zap.String("Destination Addr", nh.DestinationAddr),
 		zap.String("Request", r.RequestURI),
 	)
-	nh.proxy.ServeHTTP(w, r)
+	nh.proxy.ServeHTTP(w, setNamehostCtx(r, nh))
 }
