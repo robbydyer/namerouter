@@ -8,18 +8,26 @@ import (
 
 const nameHostCtxKey = "namehost"
 
-func namehostFromCtx(req *http.Request) *Namehost {
+func (n *NameRouter) errNamehostCtx(w http.ResponseWriter, r *http.Request) {
+	n.logger.Error("failed to get namehost from request context",
+		zap.String("host", r.Host),
+	)
+	http.Error(w, "unknown namehost", http.StatusInternalServerError)
+}
+
+func (n *NameRouter) getNamehost(req *http.Request) *Namehost {
+	// Check request context first
 	nh, ok := req.Context().Value(nameHostCtxKey).(*Namehost)
 	if ok {
 		return nh
 	}
 
-	return nil
-}
+	n.RLock()
+	nh, ok = n.nameHosts[req.Host]
+	n.RUnlock()
+	if ok {
+		return nh
+	}
 
-func (n *NameRouter) errNamehostCtx(w http.ResponseWriter) {
-	n.logger.Error("failed to get namehost from request context",
-		zap.String("host", r.Host),
-	)
-	http.Error(w, "unknown namehost", http.StatusInternalServerError)
+	return nil
 }

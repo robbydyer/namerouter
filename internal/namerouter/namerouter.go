@@ -25,7 +25,7 @@ type NameRouter struct {
 	backgroundCtx    context.Context
 	backgroundCancel context.CancelFunc
 	config           *Config
-	sync.Mutex
+	sync.RWMutex
 }
 
 type Config struct {
@@ -228,8 +228,8 @@ func (n *NameRouter) addNamehost(nh *Namehost) error {
 }
 
 func (n *NameRouter) handler(w http.ResponseWriter, r *http.Request) {
-	nh, ok := n.nameHosts[r.Host]
-	if !ok {
+	nh := n.getNamehost(r)
+	if nh == nil {
 		n.logger.Error("missing proxy config",
 			zap.String("request host", r.Host),
 		)

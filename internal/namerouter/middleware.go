@@ -121,19 +121,21 @@ func (n *NameRouter) sourcePort(next http.Handler) http.Handler {
 
 func (n *NameRouter) namehostCtx(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		nh, ok := n.nameHosts[r.Host]
-		if ok {
-			req := r.WithContext(context.WithValue(r.Context(), nameHostCtxKey, nh))
-			next.ServeHTTP(w, req)
+		nh := n.getNamehost(r)
+		if nh == nil {
+			next.ServeHTTP(w, r)
 			return
 		}
-		next.ServeHTTP(w, r)
+
+		req := r.WithContext(context.WithValue(r.Context(), nameHostCtxKey, nh))
+		next.ServeHTTP(w, req)
+		return
 	})
 }
 
 func (n *NameRouter) tinyauth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		nh := namehostFromCtx(r)
+		nh := n.getNamehost(r)
 		if nh == nil {
 			n.errNamehostCtx(w, r)
 			return
