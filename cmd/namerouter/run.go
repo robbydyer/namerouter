@@ -15,6 +15,7 @@ import (
 
 type runCmd struct {
 	configFile string
+	debug      bool
 }
 
 func newRunCmd() *cobra.Command {
@@ -28,6 +29,7 @@ func newRunCmd() *cobra.Command {
 	f := cmd.Flags()
 
 	f.StringVar(&r.configFile, "config-file", "", "config file name")
+	f.BoolVar(&r.debug, "debug", false, "Debug mode")
 
 	return cmd
 }
@@ -46,6 +48,10 @@ func (r *runCmd) run(cmd *cobra.Command, args []string) error {
 
 	if err := yaml.Unmarshal(data, &configData); err != nil {
 		return fmt.Errorf("failed to parse config file: %w", err)
+	}
+
+	if r.debug {
+		configData.Debug = true
 	}
 
 	nr, err := namerouter.New(configData)
