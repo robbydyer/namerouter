@@ -100,6 +100,7 @@ func New(config *Config) (*NameRouter, error) {
 		n.sourcePort,
 		n.hostHeaderMiddleware,
 		n.externalToHTTPSMiddleware,
+		n.tinyauth,
 	)
 
 	n.svr = &http.Server{
