@@ -96,6 +96,7 @@ func New(config *Config) (*NameRouter, error) {
 	httpRouter := mux.NewRouter()
 	httpRouter.PathPrefix("/").HandlerFunc(n.handler)
 	httpRouter.Use(
+		n.namehostCtx,
 		n.rateLimiter,
 		n.sourcePort,
 		n.hostHeaderMiddleware,
@@ -261,5 +262,5 @@ func (n *NameRouter) handler(w http.ResponseWriter, r *http.Request) {
 		zap.String("Destination Addr", nh.DestinationAddr),
 		zap.String("Request", r.RequestURI),
 	)
-	nh.proxy.ServeHTTP(w, setNamehostCtx(r, nh))
+	nh.proxy.ServeHTTP(w, r)
 }

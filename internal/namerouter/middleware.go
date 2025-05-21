@@ -1,6 +1,7 @@
 package namerouter
 
 import (
+	"context"
 	"net"
 	"net/http"
 	"strings"
@@ -118,15 +119,23 @@ func (n *NameRouter) sourcePort(next http.Handler) http.Handler {
 	})
 }
 
+func (n *NameRouter) namehostCtx(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		nh, ok := n.nameHosts[r.Host]
+		if ok {
+			req := r.WithContext(context.WithValue(r.Context(), nameHostCtxKey, nh))
+			next.ServeHTTP(w, req)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 func (n *NameRouter) tinyauth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		nh := namehostFromCtx(r)
 		if nh == nil {
-			// wat
-			n.logger.Error("failed to get namehost from request context",
-				zap.String("host", r.Host),
-			)
-			http.Error(w, "unknown namehost", http.StatusInternalServerError)
+			n.errNamehostCtx(w, r)
 			return
 		}
 

@@ -1,15 +1,15 @@
 package namerouter
 
 import (
-	"context"
 	"net/http"
+
+	"go.uber.org/zap"
 )
 
 const nameHostCtxKey = "namehost"
 
 func namehostFromCtx(req *http.Request) *Namehost {
-	ctxAny := req.Context().Value(nameHostCtxKey)
-	nh, ok := ctxAny.(*Namehost)
+	nh, ok := req.Context().Value(nameHostCtxKey).(*Namehost)
 	if ok {
 		return nh
 	}
@@ -17,6 +17,9 @@ func namehostFromCtx(req *http.Request) *Namehost {
 	return nil
 }
 
-func setNamehostCtx(req *http.Request, nh *Namehost) *http.Request {
-	return req.WithContext(context.WithValue(req.Context(), nameHostCtxKey, nh))
+func (n *NameRouter) errNamehostCtx(w http.ResponseWriter) {
+	n.logger.Error("failed to get namehost from request context",
+		zap.String("host", r.Host),
+	)
+	http.Error(w, "unknown namehost", http.StatusInternalServerError)
 }
