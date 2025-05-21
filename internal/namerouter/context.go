@@ -5,8 +5,10 @@ import (
 	"net/http"
 )
 
+const nameHostCtxKey = "namehost"
+
 func namehostFromCtx(req *http.Request) *Namehost {
-	ctxAny := req.Context().Value("namehost")
+	ctxAny := req.Context().Value(nameHostCtxKey)
 	nh, ok := ctxAny.(*Namehost)
 	if ok {
 		return nh
@@ -16,6 +18,5 @@ func namehostFromCtx(req *http.Request) *Namehost {
 }
 
 func setNamehostCtx(req *http.Request, nh *Namehost) *http.Request {
-	ctx := req.Context()
-	return req.Clone(context.WithValue(ctx, "namehost", nh))
+	return req.WithContext(context.WithValue(req.Context(), nameHostCtxKey, nh))
 }
