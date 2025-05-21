@@ -133,7 +133,7 @@ func (n *NameRouter) namehostCtx(next http.Handler) http.Handler {
 	})
 }
 
-func (n *NameRouter) tinyauth(next http.Handler) http.Handler {
+func (n *NameRouter) authMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		nh := n.getNamehost(r)
 		if nh == nil {
@@ -143,6 +143,11 @@ func (n *NameRouter) tinyauth(next http.Handler) http.Handler {
 
 		if !nh.DoAuth {
 			next.ServeHTTP(w, r)
+			return
+		}
+
+		if err := n.authChecker(r.Context()); err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
 		}
 

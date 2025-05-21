@@ -16,6 +16,8 @@ import (
 	"golang.org/x/time/rate"
 )
 
+type AuthChecker func(context.Context) error
+
 type NameRouter struct {
 	svr              *http.Server
 	httpSvr          *http.Server
@@ -27,6 +29,7 @@ type NameRouter struct {
 	backgroundCtx    context.Context
 	backgroundCancel context.CancelFunc
 	config           *Config
+	authChecker      AuthChecker
 	sync.RWMutex
 }
 
@@ -57,7 +60,7 @@ type Namehost struct {
 	proxy           *httputil.ReverseProxy
 }
 
-func New(config *Config) (*NameRouter, error) {
+func New(config *Config, authChecker AuthChecker) (*NameRouter, error) {
 	var logger *zap.Logger
 	var err error
 	if config.Debug {
@@ -78,6 +81,7 @@ func New(config *Config) (*NameRouter, error) {
 		visitors:     make(map[string]*visitor),
 		config:       config,
 		defaultRoute: make(map[string]*Namehost),
+		authChecker:  authChecker,
 	}
 
 	n.config.setDefaults()
@@ -105,14 +109,19 @@ func New(config *Config) (*NameRouter, error) {
 
 	httpRouter := mux.NewRouter()
 	httpRouter.PathPrefix("/").HandlerFunc(n.handler)
-	httpRouter.Use(
-		n.namehostCtx,
+	mwf := []mux.MiddlewareFunc{
 		n.rateLimiter,
+		n.namehostCtx,
 		n.sourcePort,
 		n.hostHeaderMiddleware,
 		n.externalToHTTPSMiddleware,
-		n.tinyauth,
-	)
+	}
+
+	if n.authChecker != nil {
+		mwf = append(mwf, n.authMiddleware)
+	}
+
+	httpRouter.Use(mwf...)
 
 	n.svr = &http.Server{
 		Addr:      ":https",
