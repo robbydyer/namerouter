@@ -16,8 +16,6 @@ import (
 	"golang.org/x/time/rate"
 )
 
-type AuthChecker func(context.Context) error
-
 type NameRouter struct {
 	svr              *http.Server
 	httpSvr          *http.Server

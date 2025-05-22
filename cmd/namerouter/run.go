@@ -14,9 +14,8 @@ import (
 )
 
 type runCmd struct {
-	configFile  string
-	debug       bool
-	tinyauthURL string
+	configFile string
+	debug      bool
 }
 
 func newRunCmd() *cobra.Command {
