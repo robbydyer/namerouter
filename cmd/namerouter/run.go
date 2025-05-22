@@ -15,8 +15,9 @@ import (
 )
 
 type runCmd struct {
-	configFile string
-	debug      bool
+	configFile  string
+	debug       bool
+	tinyauthURL string
 }
 
 func newRunCmd() *cobra.Command {
@@ -31,6 +32,7 @@ func newRunCmd() *cobra.Command {
 
 	f.StringVar(&r.configFile, "config-file", "", "config file name")
 	f.BoolVar(&r.debug, "debug", false, "Debug mode")
+	f.StringVar(&r.tinyauthURL, "tinyauth-url", "", "URL for tinyauth service")
 
 	return cmd
 }
@@ -55,7 +57,11 @@ func (r *runCmd) run(cmd *cobra.Command, args []string) error {
 		configData.Debug = true
 	}
 
-	nr, err := namerouter.New(configData, tinyauth.CheckAuth("https://tinyauth.robbydyer.com"))
+	var authChecker namerouter.AuthChecker
+	if r.tinyauthURL != "" {
+		authChecker = tinyauth.CheckAuth(r.tinyauthURL)
+	}
+	nr, err := namerouter.New(configData, authChecker)
 	if err != nil {
 		return err
 	}
