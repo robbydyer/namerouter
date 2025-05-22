@@ -55,7 +55,7 @@ func (r *runCmd) run(cmd *cobra.Command, args []string) error {
 		configData.Debug = true
 	}
 
-	nr, err := namerouter.New(configData, tinyauth.CheckAuth("https://tinyauth.robbydyer.com"))
+	nr, err := namerouter.New(configData, tinyauth.CheckAuth("https://tinyauth.local"))
 	if err != nil {
 		return err
 	}
