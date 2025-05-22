@@ -2,6 +2,7 @@ package namerouter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httputil"
@@ -96,6 +97,9 @@ func New(config *Config, authChecker AuthChecker) (*NameRouter, error) {
 
 	router := mux.NewRouter()
 
+	if os.Getenv("GOOGLE_CLIENT_ID") == "" || os.Getenv("GOOGLE_CLIENT_SECRET") == "" {
+		return nil, errors.New("google creds were empty")
+	}
 	goth.UseProviders(
 		google.New(os.Getenv("GOOGLE_CLIENT_ID"), os.Getenv("GOOGLE_CLIENT_SECRET"), "https://auth.robbydyer.com/auth/callback/google"),
 	)
