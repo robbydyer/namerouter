@@ -132,24 +132,3 @@ func (n *NameRouter) namehostCtx(next http.Handler) http.Handler {
 		return
 	})
 }
-
-func (n *NameRouter) authMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		nh := n.getNamehost(r)
-		if nh == nil {
-			n.errNamehostCtx(w, r)
-			return
-		}
-
-		if !nh.DoAuth {
-			next.ServeHTTP(w, r)
-			return
-		}
-
-		n.logger.Info("performing auth",
-			zap.String("host", r.Host),
-		)
-
-		next.ServeHTTP(w, r)
-	})
-}

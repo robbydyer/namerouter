@@ -2,7 +2,6 @@ package namerouter
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httputil"
@@ -11,8 +10,6 @@ import (
 	"sync"
 
 	"github.com/gorilla/mux"
-	"github.com/markbates/goth"
-	"github.com/markbates/goth/providers/google"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"golang.org/x/crypto/acme/autocert"
@@ -32,7 +29,6 @@ type NameRouter struct {
 	backgroundCtx    context.Context
 	backgroundCancel context.CancelFunc
 	config           *Config
-	authChecker      AuthChecker
 	sync.RWMutex
 }
 
@@ -61,11 +57,10 @@ type Namehost struct {
 	DestinationAddr string   `yaml:"destination"`
 	SourcePort      *string  `yaml:"sourcePort"`
 	Always404       bool     `yaml:"always404"`
-	DoAuth          bool     `yaml:"doAuth"`
 	proxy           *httputil.ReverseProxy
 }
 
-func New(config *Config, authChecker AuthChecker) (*NameRouter, error) {
+func New(config *Config) (*NameRouter, error) {
 	var logger *zap.Logger
 	var err error
 	if config.Debug {
@@ -86,7 +81,6 @@ func New(config *Config, authChecker AuthChecker) (*NameRouter, error) {
 		visitors:     make(map[string]*visitor),
 		config:       config,
 		defaultRoute: make(map[string]*Namehost),
-		authChecker:  authChecker,
 	}
 
 	n.config.setDefaults()
@@ -97,14 +91,6 @@ func New(config *Config, authChecker AuthChecker) (*NameRouter, error) {
 
 	router := mux.NewRouter()
 
-	if os.Getenv("GOOGLE_CLIENT_ID") == "" || os.Getenv("GOOGLE_CLIENT_SECRET") == "" {
-		return nil, errors.New("google creds were empty")
-	}
-	goth.UseProviders(
-		google.New(os.Getenv("GOOGLE_CLIENT_ID"), os.Getenv("GOOGLE_CLIENT_SECRET"), "https://auth.robbydyer.com/auth/callback/google"),
-	)
-	router.HandleFunc("/auth/{provider}", n.authHandler)
-	router.HandleFunc("/auth/callback/{provider}", n.authCallback)
 	router.PathPrefix("/").HandlerFunc(n.handler)
 
 	mwf := []mux.MiddlewareFunc{
@@ -112,10 +98,6 @@ func New(config *Config, authChecker AuthChecker) (*NameRouter, error) {
 		n.namehostCtx,
 		n.sourcePort,
 		n.hostHeaderMiddleware,
-	}
-
-	if n.authChecker != nil {
-		mwf = append(mwf, n.authMiddleware)
 	}
 
 	router.Use(mwf...)
@@ -128,8 +110,6 @@ func New(config *Config, authChecker AuthChecker) (*NameRouter, error) {
 	}
 
 	httpRouter := mux.NewRouter()
-	httpRouter.HandleFunc("/auth/{provider}", n.authHandler)
-	httpRouter.HandleFunc("/auth/callback/{provider}", n.authCallback)
 	httpRouter.PathPrefix("/").HandlerFunc(n.handler)
 
 	mwf = append(mwf, n.externalToHTTPSMiddleware)

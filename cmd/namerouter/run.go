@@ -31,7 +31,6 @@ func newRunCmd() *cobra.Command {
 
 	f.StringVar(&r.configFile, "config-file", "", "config file name")
 	f.BoolVar(&r.debug, "debug", false, "Debug mode")
-	f.StringVar(&r.tinyauthURL, "tinyauth-url", "", "URL for tinyauth service")
 
 	return cmd
 }
@@ -56,11 +55,7 @@ func (r *runCmd) run(cmd *cobra.Command, args []string) error {
 		configData.Debug = true
 	}
 
-	var authChecker namerouter.AuthChecker
-	if r.tinyauthURL != "" {
-		// authChecker = tinyauth.CheckOauth(r.tinyauthURL)
-	}
-	nr, err := namerouter.New(configData, authChecker)
+	nr, err := namerouter.New(configData)
 	if err != nil {
 		return err
 	}
