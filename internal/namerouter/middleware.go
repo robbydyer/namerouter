@@ -149,10 +149,6 @@ func (n *NameRouter) authMiddleware(next http.Handler) http.Handler {
 		n.logger.Info("performing auth",
 			zap.String("host", r.Host),
 		)
-		if err := n.authChecker(r.Context()); err != nil {
-			http.Error(w, err.Error(), http.StatusUnauthorized)
-			return
-		}
 
 		next.ServeHTTP(w, r)
 	})
