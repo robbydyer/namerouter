@@ -6,14 +6,9 @@ import (
 	"go.uber.org/zap"
 )
 
-const nameHostCtxKey = "namehost"
+type nameHostCtxKeyType string
 
-func (n *NameRouter) errNamehostCtx(w http.ResponseWriter, r *http.Request) {
-	n.logger.Error("failed to get namehost from request context",
-		zap.String("host", r.Host),
-	)
-	http.Error(w, "unknown namehost", http.StatusInternalServerError)
-}
+var nameHostCtxKey nameHostCtxKeyType
 
 func (n *NameRouter) getNamehost(req *http.Request) *Namehost {
 	// Check request context first
