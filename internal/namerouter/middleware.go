@@ -83,7 +83,7 @@ func (n *NameRouter) captureClosedConnIP(conn net.Conn, state http.ConnState) {
 func (n *NameRouter) sourcePort(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Host != "" && net.ParseIP(r.Host) == nil {
-			n.logger.Info("not a sourceport connection",
+			n.logger.Info("not a sourceport connection, not ip",
 				zap.String("host", r.Host),
 			)
 			next.ServeHTTP(w, r)

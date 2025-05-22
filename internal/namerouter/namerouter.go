@@ -105,7 +105,6 @@ func New(config *Config, authChecker AuthChecker) (*NameRouter, error) {
 		n.namehostCtx,
 		n.sourcePort,
 		n.hostHeaderMiddleware,
-		n.externalToHTTPSMiddleware,
 	}
 
 	if n.authChecker != nil {
@@ -126,6 +125,7 @@ func New(config *Config, authChecker AuthChecker) (*NameRouter, error) {
 	httpRouter.PathPrefix("/auth/callback/:provider").HandlerFunc(n.authCallback)
 	httpRouter.PathPrefix("/").HandlerFunc(n.handler)
 
+	mwf = append(mwf, n.externalToHTTPSMiddleware)
 	httpRouter.Use(mwf...)
 
 	httpsAddr := ":443"
