@@ -96,8 +96,8 @@ func New(config *Config, authChecker AuthChecker) (*NameRouter, error) {
 	router := mux.NewRouter()
 
 	google.New(os.Getenv("GOOGLE_CLIENT_ID"), os.Getenv("GOOGLE_CLIENT_SECRET"), "https://auth.robbydyer.com/auth/callback/google")
-	router.HandleFunc("/auth/:provider", n.authHandler)
-	router.HandleFunc("/auth/callback/:provider", n.authCallback)
+	router.HandleFunc("/auth/{provider}", n.authHandler)
+	router.HandleFunc("/auth/callback/{provider}", n.authCallback)
 	router.PathPrefix("/").HandlerFunc(n.handler)
 
 	mwf := []mux.MiddlewareFunc{
@@ -121,8 +121,8 @@ func New(config *Config, authChecker AuthChecker) (*NameRouter, error) {
 	}
 
 	httpRouter := mux.NewRouter()
-	httpRouter.HandleFunc("/auth/:provider", n.authHandler)
-	httpRouter.HandleFunc("/auth/callback/:provider", n.authCallback)
+	httpRouter.HandleFunc("/auth/{provider}", n.authHandler)
+	httpRouter.HandleFunc("/auth/callback/{provider}", n.authCallback)
 	httpRouter.PathPrefix("/").HandlerFunc(n.handler)
 
 	mwf = append(mwf, n.externalToHTTPSMiddleware)
