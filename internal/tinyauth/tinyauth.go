@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-func CheckAuth(authServer string) func(ctx context.Context) error {
+func CheckOauth(authServer string) func(ctx context.Context) error {
 	return func(ctx context.Context) error {
 		resp, err := http.Get(authServer)
 		if err != nil {
