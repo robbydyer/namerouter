@@ -1,6 +1,7 @@
 package namerouter
 
 import (
+	"context"
 	"net"
 	"net/http"
 	"strings"
@@ -82,7 +83,7 @@ func (n *NameRouter) captureClosedConnIP(conn net.Conn, state http.ConnState) {
 func (n *NameRouter) sourcePort(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Host != "" && net.ParseIP(r.Host) == nil {
-			n.logger.Info("not a sourceport connection",
+			n.logger.Info("not a sourceport connection, not ip",
 				zap.String("host", r.Host),
 			)
 			next.ServeHTTP(w, r)
@@ -115,5 +116,17 @@ func (n *NameRouter) sourcePort(next http.Handler) http.Handler {
 		)
 
 		next.ServeHTTP(w, r)
+	})
+}
+
+func (n *NameRouter) namehostCtx(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		nh := n.getNamehost(r)
+		if nh == nil {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), nameHostCtxKey, nh)))
 	})
 }

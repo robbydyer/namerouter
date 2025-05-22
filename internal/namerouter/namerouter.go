@@ -6,10 +6,12 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
 	"sync"
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/time/rate"
 )
@@ -25,7 +27,7 @@ type NameRouter struct {
 	backgroundCtx    context.Context
 	backgroundCancel context.CancelFunc
 	config           *Config
-	sync.Mutex
+	sync.RWMutex
 }
 
 type Config struct {
@@ -33,6 +35,9 @@ type Config struct {
 	Routes     []*Namehost `yaml:"routes"`
 	DoSSL      bool        `yaml:"doSSL"`
 	Email      string      `yaml:"email"`
+	Debug      bool        `yaml:"debug"`
+	HTTPSPort  int         `yaml:"httpsPort"`
+	HTTPPort   int         `yaml:"httpPort"`
 }
 
 type RateLimits struct {
@@ -54,9 +59,16 @@ type Namehost struct {
 }
 
 func New(config *Config) (*NameRouter, error) {
-	logger, err := zap.NewProduction()
-	if err != nil {
-		return nil, err
+	var logger *zap.Logger
+	var err error
+	if config.Debug {
+		core := zapcore.NewCore(zapcore.NewConsoleEncoder(zap.NewProductionEncoderConfig()), os.Stdout, zap.DebugLevel)
+		logger = zap.New(core)
+	} else {
+		logger, err = zap.NewProduction()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	zap.RedirectStdLog(logger)
@@ -79,11 +91,14 @@ func New(config *Config) (*NameRouter, error) {
 
 	router.PathPrefix("/").HandlerFunc(n.handler)
 
-	router.Use(
+	mwf := []mux.MiddlewareFunc{
 		n.rateLimiter,
+		n.namehostCtx,
 		n.sourcePort,
 		n.hostHeaderMiddleware,
-	)
+	}
+
+	router.Use(mwf...)
 
 	aCert := &autocert.Manager{
 		Cache:      autocert.DirCache("/cert_cache"),
@@ -94,22 +109,29 @@ func New(config *Config) (*NameRouter, error) {
 
 	httpRouter := mux.NewRouter()
 	httpRouter.PathPrefix("/").HandlerFunc(n.handler)
-	httpRouter.Use(
-		n.rateLimiter,
-		n.sourcePort,
-		n.hostHeaderMiddleware,
-		n.externalToHTTPSMiddleware,
-	)
+
+	mwf = append(mwf, n.externalToHTTPSMiddleware)
+	httpRouter.Use(mwf...)
+
+	httpsAddr := ":443"
+	if n.config.HTTPSPort != 0 {
+		httpsAddr = fmt.Sprintf(":%d", n.config.HTTPSPort)
+	}
+
+	httpAddr := ":80"
+	if n.config.HTTPPort != 0 {
+		httpAddr = fmt.Sprintf(":%d", n.config.HTTPPort)
+	}
 
 	n.svr = &http.Server{
-		Addr:      ":https",
+		Addr:      httpsAddr,
 		Handler:   router,
 		TLSConfig: aCert.TLSConfig(),
 		ConnState: n.captureClosedConnIP,
 	}
 
 	n.httpSvr = &http.Server{
-		Addr:    ":http",
+		Addr:    httpAddr,
 		Handler: httpRouter,
 	}
 
@@ -225,8 +247,8 @@ func (n *NameRouter) addNamehost(nh *Namehost) error {
 }
 
 func (n *NameRouter) handler(w http.ResponseWriter, r *http.Request) {
-	nh, ok := n.nameHosts[r.Host]
-	if !ok {
+	nh := n.getNamehost(r)
+	if nh == nil {
 		n.logger.Error("missing proxy config",
 			zap.String("request host", r.Host),
 		)

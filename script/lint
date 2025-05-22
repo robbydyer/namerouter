@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(dirname $( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd ))"
 
 fix=""
-if [ ! -n "${GITHUB_ACTIONS}" ]; then
+if [ ! -n "${GITHUB_ACTIONS:-}" ]; then
   fix="--fix"
 fi
 
@@ -19,5 +19,5 @@ docker run -t --rm \
   -w /app \
   -e CGO_ENABLED=0 \
   -e GOCACHE=/app/.cache \
-  golangci/golangci-lint:v1.56.2 \
+  golangci/golangci-lint:v2.1.6 \
   golangci-lint run --verbose --timeout=10m ${fix}
