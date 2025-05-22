@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/gorilla/mux"
+	"github.com/markbates/goth"
 	"github.com/markbates/goth/providers/google"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -95,7 +96,9 @@ func New(config *Config, authChecker AuthChecker) (*NameRouter, error) {
 
 	router := mux.NewRouter()
 
-	google.New(os.Getenv("GOOGLE_CLIENT_ID"), os.Getenv("GOOGLE_CLIENT_SECRET"), "https://auth.robbydyer.com/auth/callback/google")
+	goth.UseProviders(
+		google.New(os.Getenv("GOOGLE_CLIENT_ID"), os.Getenv("GOOGLE_CLIENT_SECRET"), "https://auth.robbydyer.com/auth/callback/google"),
+	)
 	router.HandleFunc("/auth/{provider}", n.authHandler)
 	router.HandleFunc("/auth/callback/{provider}", n.authCallback)
 	router.PathPrefix("/").HandlerFunc(n.handler)
