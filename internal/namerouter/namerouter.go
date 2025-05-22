@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/gorilla/mux"
+	"github.com/markbates/goth/providers/google"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"golang.org/x/crypto/acme/autocert"
@@ -96,21 +97,10 @@ func New(config *Config, authChecker AuthChecker) (*NameRouter, error) {
 
 	router.PathPrefix("/").HandlerFunc(n.handler)
 
-	router.Use(
-		n.rateLimiter,
-		n.sourcePort,
-		n.hostHeaderMiddleware,
-	)
+	google.New(os.Getenv("GOOGLE_CLIENT_ID"), os.Getenv("GOOGLE_CLIENT_SECRET"), "https://auth.robbydyer.com/auth/callback/google")
+	router.PathPrefix("/auth/:provider").HandlerFunc(n.authHandler)
+	router.PathPrefix("/auth/callback/:provider").HandlerFunc(n.authCallback)
 
-	aCert := &autocert.Manager{
-		Cache:      autocert.DirCache("/cert_cache"),
-		Prompt:     autocert.AcceptTOS,
-		Email:      config.Email,
-		HostPolicy: autocert.HostWhitelist(getExternalHosts(config.Routes)...),
-	}
-
-	httpRouter := mux.NewRouter()
-	httpRouter.PathPrefix("/").HandlerFunc(n.handler)
 	mwf := []mux.MiddlewareFunc{
 		n.rateLimiter,
 		n.namehostCtx,
@@ -122,6 +112,18 @@ func New(config *Config, authChecker AuthChecker) (*NameRouter, error) {
 	if n.authChecker != nil {
 		mwf = append(mwf, n.authMiddleware)
 	}
+
+	router.Use(mwf...)
+
+	aCert := &autocert.Manager{
+		Cache:      autocert.DirCache("/cert_cache"),
+		Prompt:     autocert.AcceptTOS,
+		Email:      config.Email,
+		HostPolicy: autocert.HostWhitelist(getExternalHosts(config.Routes)...),
+	}
+
+	httpRouter := mux.NewRouter()
+	httpRouter.PathPrefix("/").HandlerFunc(n.handler)
 
 	httpRouter.Use(mwf...)
 

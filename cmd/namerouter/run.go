@@ -11,7 +11,6 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/robbydyer/namerouter/internal/namerouter"
-	"github.com/robbydyer/namerouter/internal/tinyauth"
 )
 
 type runCmd struct {
@@ -59,7 +58,7 @@ func (r *runCmd) run(cmd *cobra.Command, args []string) error {
 
 	var authChecker namerouter.AuthChecker
 	if r.tinyauthURL != "" {
-		authChecker = tinyauth.CheckOauth(r.tinyauthURL)
+		// authChecker = tinyauth.CheckOauth(r.tinyauthURL)
 	}
 	nr, err := namerouter.New(configData, authChecker)
 	if err != nil {
