@@ -127,7 +127,6 @@ func (n *NameRouter) namehostCtx(next http.Handler) http.Handler {
 			return
 		}
 
-		req := r.WithContext(context.WithValue(r.Context(), nameHostCtxKey, nh))
-		next.ServeHTTP(w, req)
+		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), nameHostCtxKey, nh)))
 	})
 }

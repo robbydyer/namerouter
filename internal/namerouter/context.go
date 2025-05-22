@@ -8,7 +8,7 @@ import (
 
 type nameHostCtxKeyType string
 
-var nameHostCtxKey nameHostCtxKeyType
+var nameHostCtxKey nameHostCtxKeyType = "namehostctxkey"
 
 func (n *NameRouter) getNamehost(req *http.Request) *Namehost {
 	// Check request context first
