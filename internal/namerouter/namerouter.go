@@ -39,6 +39,8 @@ type Config struct {
 	DoSSL      bool        `yaml:"doSSL"`
 	Email      string      `yaml:"email"`
 	Debug      bool        `yaml:"debug"`
+	HTTPSPort  int         `yaml:"httpsPort"`
+	HTTPPort   int         `yaml:"httpPort"`
 }
 
 type RateLimits struct {
@@ -123,15 +125,25 @@ func New(config *Config, authChecker AuthChecker) (*NameRouter, error) {
 
 	httpRouter.Use(mwf...)
 
+	httpsAddr := ":443"
+	if n.config.HTTPSPort != 0 {
+		httpsAddr = fmt.Sprintf(":%d", n.config.HTTPSPort)
+	}
+
+	httpAddr := ":80"
+	if n.config.HTTPPort != 0 {
+		httpAddr = fmt.Sprintf(":%d", n.config.HTTPPort)
+	}
+
 	n.svr = &http.Server{
-		Addr:      ":https",
+		Addr:      httpsAddr,
 		Handler:   router,
 		TLSConfig: aCert.TLSConfig(),
 		ConnState: n.captureClosedConnIP,
 	}
 
 	n.httpSvr = &http.Server{
-		Addr:    ":http",
+		Addr:    httpAddr,
 		Handler: httpRouter,
 	}
 

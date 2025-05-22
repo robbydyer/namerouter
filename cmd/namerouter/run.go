@@ -59,7 +59,7 @@ func (r *runCmd) run(cmd *cobra.Command, args []string) error {
 
 	var authChecker namerouter.AuthChecker
 	if r.tinyauthURL != "" {
-		authChecker = tinyauth.CheckAuth(r.tinyauthURL)
+		authChecker = tinyauth.CheckOauth(r.tinyauthURL)
 	}
 	nr, err := namerouter.New(configData, authChecker)
 	if err != nil {
