@@ -1,6 +1,6 @@
 module github.com/robbydyer/namerouter
 
-go 1.23.0
+go 1.24.0
 
 toolchain go1.24.3
 
@@ -10,7 +10,7 @@ require (
 	github.com/spf13/viper v1.21.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.41.0
-	golang.org/x/time v0.12.0
+	golang.org/x/time v0.13.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
