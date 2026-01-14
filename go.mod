@@ -6,7 +6,7 @@ toolchain go1.24.3
 
 require (
 	github.com/gorilla/mux v1.8.1
-	github.com/spf13/cobra v1.10.1
+	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
 	go.uber.org/zap v1.27.1
 	golang.org/x/crypto v0.47.0
