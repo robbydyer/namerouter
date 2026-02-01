@@ -6,7 +6,7 @@ RUN CGO_ENABLED=0 \
     GOCACHE=/app/.cache \
     go build -mod=vendor -o /usr/local/bin/namerouter ./cmd/namerouter
 
-FROM alpine:3.23.2
+FROM alpine:3.23.3
 
 WORKDIR /
 
