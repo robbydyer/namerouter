@@ -23,7 +23,7 @@ jobs:
           go.mod
           go.sum
 
-    - uses: actions/cache/restore@v4
+    - uses: actions/cache/restore@v5
       if: steps.go-changes.outputs.any_changed == 'true'
       id: go-cache
       with:
