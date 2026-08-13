@@ -7,6 +7,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"slices"
 	"sync"
 
 	"github.com/gorilla/mux"
@@ -56,6 +57,10 @@ type Namehost struct {
 	SourcePort      *string  `yaml:"sourcePort"`
 	Always404       bool     `yaml:"always404"`
 	proxy           *httputil.ReverseProxy
+}
+
+func (nh *Namehost) isExternalHost(host string) bool {
+	return slices.Contains(nh.ExternalHosts, host)
 }
 
 func New(config *Config) (*NameRouter, error) {

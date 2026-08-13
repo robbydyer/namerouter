@@ -19,5 +19,5 @@ docker run -t --rm \
   -w /app \
   -e CGO_ENABLED=0 \
   -e GOCACHE=/app/.cache \
-  golangci/golangci-lint:v2.1.6 \
+  golangci/golangci-lint:v2.12.2 \
   golangci-lint run --verbose --timeout=10m ${fix}
