@@ -24,24 +24,21 @@ func (n *NameRouter) hostHeaderMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+// only used in the http router
 func (n *NameRouter) externalToHTTPSMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if nh := n.getNamehost(r); nh != nil && nh.isExternalHost(r.Host) {
-			n.logger.Error("rejected external host request over plain HTTP",
+		ip := net.ParseIP(strings.Split(r.RemoteAddr, ":")[0])
+		nh := n.getNamehost(r)
+
+		if !ip.IsPrivate() || (nh != nil && nh.isExternalHost(r.Host)) {
+			n.logger.Info("redirecting external host request to HTTPS",
 				zap.String("host", r.Host),
 				zap.String("source", r.RemoteAddr),
 			)
-			http.Error(w, "external hosts must be accessed via HTTPS", http.StatusForbidden)
+			http.Redirect(w, r, "https://"+n.httpsHost(r.Host)+r.URL.String(), http.StatusPermanentRedirect)
 			return
 		}
 
-		ip := net.ParseIP(strings.Split(r.RemoteAddr, ":")[0])
-
-		if !ip.IsPrivate() {
-			newURI := "https://" + r.Host + r.URL.String()
-			http.Redirect(w, r, newURI, http.StatusFound)
-			return
-		}
 		if next != nil {
 			next.ServeHTTP(w, r)
 		}
