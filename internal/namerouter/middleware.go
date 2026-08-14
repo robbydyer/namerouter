@@ -35,7 +35,7 @@ func (n *NameRouter) externalToHTTPSMiddleware(next http.Handler) http.Handler {
 				zap.String("host", r.Host),
 				zap.String("source", r.RemoteAddr),
 			)
-			http.Redirect(w, r, "https://"+n.httpsHost(r.Host)+r.URL.String(), http.StatusPermanentRedirect)
+			http.Redirect(w, r, "https://"+r.Host+r.URL.String(), http.StatusPermanentRedirect)
 			return
 		}
 
