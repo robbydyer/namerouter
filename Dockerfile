@@ -6,9 +6,9 @@ RUN CGO_ENABLED=0 \
     GOCACHE=/app/.cache \
     go build -mod=vendor -o /usr/local/bin/namerouter ./cmd/namerouter
 
-FROM alpine:3.24.3
+FROM gcr.io/distroless/base-debian13
 
 WORKDIR /
 
 COPY --from=builder /usr/local/bin/namerouter /usr/local/bin/namerouter
-RUN chmod +x  /usr/local/bin/namerouter
+ENTRYPOINT ["/usr/local/bin/namerouter"]
